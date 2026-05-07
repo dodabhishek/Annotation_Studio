@@ -1,1 +1,5 @@
 node_modules
+
+# Nested git repositories
+backend/GroundingDINO/.git/
+backend/sam2_repo/.git/

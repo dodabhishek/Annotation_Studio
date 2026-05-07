@@ -1,0 +1,43 @@
+# Backend Framework
+flask
+flask-cors
+
+# Deep Learning
+torch
+torchvision
+torchaudio
+
+# Computer Vision
+opencv-python
+pillow
+numpy
+matplotlib
+
+# AI Models
+ultralytics
+supervision
+transformers
+timm
+
+# GroundingDINO Dependencies
+pyyaml
+requests
+scipy
+einops
+
+# Utilities
+tqdm
+pandas
+
+# Image Processing
+scikit-image
+
+# API / Server
+gunicorn
+
+# Annotation / JSON
+pycocotools
+
+# Optional but Useful
+jupyter
+ipython
