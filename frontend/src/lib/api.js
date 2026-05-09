@@ -19,6 +19,8 @@ export async function detectObjects(imageFile, prompt = 'person .') {
 
   if (data.output_image) {
     data.outputImageUrl = `/output/${data.output_image}`;
+    data.annotationData = data.detections
+    console.log(data.annotationData)
   }
 
   return data;

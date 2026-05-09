@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef } from 'react';
-import { Upload, FolderOpen, X, ArrowRight, Sparkles, Box, Scan, ScanText, Brain, Images, Video, Cpu, Check, ImageIcon, Lock } from 'lucide-react';
+import { Upload, FolderOpen, X, ArrowRight, Sparkles, Box, Scan, ScanText, Brain, Images, Video, Cpu, Check, ImageIcon, Lock, Database, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { AssetsViewer } from '@/components/assets-viewer';
 
 const AI_MODELS = [
   {
@@ -89,6 +90,7 @@ export function SetupPage({ onContinue }) {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [selectedModel, setSelectedModel] = useState('grounding-dino');
   const [isDragging, setIsDragging] = useState(false);
+  const [activeTab, setActiveTab] = useState('annotate'); // 'annotate' | 'assets'
   const fileInputRef = useRef(null);
 
   const handleFiles = useCallback((files) => {
@@ -135,8 +137,8 @@ export function SetupPage({ onContinue }) {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="h-16 border-b border-border flex items-center px-6 bg-card shrink-0">
+      {/* Header Navigation */}
+      <header className="h-16 border-b border-border flex items-center px-6 bg-card shrink-0 gap-10">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-xl bg-primary flex items-center justify-center animate-sparkle-pulse">
             <Sparkles className="h-5 w-5 text-primary-foreground" />
@@ -144,13 +146,41 @@ export function SetupPage({ onContinue }) {
             <span className="absolute -bottom-0.5 -left-1 w-1.5 h-1.5 bg-blue-accent rounded-full animate-particle-delay-1" />
           </div>
           <div>
-            <span className="font-semibold text-foreground text-lg">LabelStudio</span>
-            <p className="text-xs text-muted-foreground">AI-Powered Image Annotation</p>
+            <span className="font-semibold text-foreground text-lg tracking-tight">Annotation Studio</span>
           </div>
+        </div>
+
+        <div className="flex p-1 bg-secondary/80 rounded-lg">
+          <button
+            onClick={() => setActiveTab('annotate')}
+            className={cn(
+              "px-5 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all", 
+              activeTab === 'annotate' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            )}
+          >
+            <Tags className="h-4 w-4" /> Setup Annotation
+          </button>
+          <button
+            onClick={() => setActiveTab('assets')}
+            className={cn(
+              "px-5 py-1.5 text-sm font-medium rounded-md flex items-center gap-2 transition-all", 
+              activeTab === 'assets' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            )}
+          >
+            <Database className="h-4 w-4" /> Assets
+          </button>
         </div>
       </header>
 
-      <ScrollArea className="flex-1">
+      {activeTab === 'assets' ? (
+        <div className="flex-1 overflow-hidden p-6 bg-muted/10">
+          <div className="h-full border border-border rounded-xl bg-card overflow-hidden shadow-sm">
+            <AssetsViewer />
+          </div>
+        </div>
+      ) : (
+        <>
+          <ScrollArea className="flex-1">
         <div className="max-w-5xl mx-auto px-6 py-10">
           {/* Step 1: Upload */}
           <section className="mb-12">
@@ -355,6 +385,7 @@ export function SetupPage({ onContinue }) {
               })}
             </div>
           </section>
+
         </div>
       </ScrollArea>
 
@@ -390,6 +421,8 @@ export function SetupPage({ onContinue }) {
           </Button>
         </div>
       </footer>
+      </>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '.'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   css: {
@@ -19,6 +19,7 @@ export default defineConfig({
     proxy: {
       '/detect': 'http://127.0.0.1:5000',
       '/output': 'http://127.0.0.1:5000',
+      '/api': 'http://127.0.0.1:5000',
     },
   },
 })

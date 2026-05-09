@@ -25,7 +25,7 @@ def detect():
     image.save(image_path)
 
     result = detect_objects(image_path, prompt)
-
+    print("Dtections" , result["detections"])
     return jsonify({
         "success": True,
         "detections": result["detections"],

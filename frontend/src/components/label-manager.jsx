@@ -10,7 +10,7 @@ const COLORS = [
     '#0284c7', '#1d4ed8', '#4f46e5', '#7c3aed',
     '#2563eb', '#4338ca', '#0891b2', '#0369a1',
 ];
-export function LabelManager({ labels, selectedLabelId, onSelectLabel, onAddLabel, onUpdateLabel, onDeleteLabel, }) {
+export function LabelManager({ labels, selectedLabelId, onSelectLabel, onAddLabel, onUpdateLabel, onDeleteLabel, labelCounts = {} }) {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [newLabelName, setNewLabelName] = useState('');
@@ -106,8 +106,11 @@ export function LabelManager({ labels, selectedLabelId, onSelectLabel, onAddLabe
                 </div>) : (<>
                   <span className="flex-1 text-sm font-medium text-foreground truncate">
                     {label.name}
-                  </span>
-                  {label.shortcut && (<Kbd className="h-6 min-w-6 text-xs bg-secondary">{label.shortcut}</Kbd>)}
+                  </span>                  {labelCounts[label.id] !== undefined && (
+                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+                      {labelCounts[label.id]}
+                    </span>
+                  )}                  {label.shortcut && (<Kbd className="h-6 min-w-6 text-xs bg-secondary">{label.shortcut}</Kbd>)}
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground" onClick={(e) => {
                     e.stopPropagation();
