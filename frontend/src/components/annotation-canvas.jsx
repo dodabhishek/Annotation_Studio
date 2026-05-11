@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { detectSamPoint } from '@/lib/api';
 
 export function AnnotationCanvas({
   image,
@@ -30,6 +31,7 @@ export function AnnotationCanvas({
   const [cursorPosition, setCursorPosition] = useState(null);
   const [isMovingAnnotation, setIsMovingAnnotation] = useState(false);
   const [selectedAnnotationHandle, setSelectedAnnotationHandle] = useState(null);
+  const [isSamComputing, setIsSamComputing] = useState(false);
 
   const isDrawingRef = useRef(false);
   const isPanningRef = useRef(false);
@@ -375,6 +377,28 @@ export function AnnotationCanvas({
           points: [point],
           imageId: image.id,
         });
+      } else if (selectedTool === 'sam-point') {
+        if (isSamComputing) return;
+        setIsSamComputing(true);
+        // Create an async function inside to handle the API call
+        (async () => {
+          try {
+            // we pass image.file which is a File object, point.x and point.y
+            const points = await detectSamPoint(image.file, point.x, point.y);
+            if (points && points.length > 2) {
+              onAddAnnotation({
+                type: 'polygon',
+                labelId: selectedLabelId,
+                points: points,
+                imageId: image.id,
+              });
+            }
+          } catch (error) {
+            console.error('SAM detection failed:', error);
+          } finally {
+            setIsSamComputing(false);
+          }
+        })();
       } else if (selectedTool === 'polygon' || selectedTool === 'polyline') {
         if (e.detail === 2 && currentPoints.length > 1) {
           onAddAnnotation({
@@ -589,8 +613,10 @@ export function AnnotationCanvas({
   }
 
   const getCursor = () => {
+    if (isSamComputing) return 'wait';
     if (selectedTool === 'pan' || isPanning) return 'grab';
     if (selectedTool === 'select') return 'default';
+    if (selectedTool === 'sam-point') return 'crosshair'; // maybe wand? standard css doesn't have wand, crosshair is fine
     return 'crosshair';
   };
 

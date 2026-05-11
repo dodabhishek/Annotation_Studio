@@ -20,6 +20,7 @@ export default defineConfig({
       '/detect': 'http://127.0.0.1:5000',
       '/output': 'http://127.0.0.1:5000',
       '/api': 'http://127.0.0.1:5000',
+      '/sam': 'http://127.0.0.1:5000',
     },
   },
 })

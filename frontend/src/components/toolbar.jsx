@@ -1,4 +1,4 @@
-import { MousePointer2, Square, Pentagon, Spline, Circle, Hand, ZoomIn, ZoomOut, RotateCcw, Download, Trash2, ChevronLeft, ChevronRight, Package, CheckLine, Check } from 'lucide-react';
+import { MousePointer2, Square, Pentagon, Spline, Circle, Hand, ZoomIn, ZoomOut, RotateCcw, Download, Trash2, ChevronLeft, ChevronRight, Package, CheckLine, Check, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Kbd } from '@/components/ui/kbd';
 const tools = [
     { type: 'select', icon: MousePointer2, label: 'Select', shortcut: 'V' },
+    { type: 'sam-point', icon: Wand2, label: 'SAM Point', shortcut: 'S' },
     { type: 'bbox', icon: Square, label: 'Bounding Box', shortcut: 'B' },
     { type: 'polygon', icon: Pentagon, label: 'Polygon', shortcut: 'P' },
     { type: 'polyline', icon: Spline, label: 'Polyline', shortcut: 'L' },

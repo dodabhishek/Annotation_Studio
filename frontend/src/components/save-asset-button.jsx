@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Check, CheckLine, Download, AlertCircle, Loader2 } from 'lucide-react';
+import { Check, CheckLine, Download, AlertCircle } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import './save-asset-button.css';
 
@@ -69,7 +70,7 @@ export function SaveAssetButton({ image, annotations, labels, onSaved, iconOnly 
                                 disabled={isSaving || !image}
                                 className={`h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground ${isSaved ? 'text-green-500' : ''}`}
                             >
-                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckLine className="h-4 w-4" />}
+                                {isSaving ? <Spinner className="h-4 w-4" /> : <CheckLine className="h-4 w-4" />}
                             </button>
                         </TooltipTrigger>
                         <TooltipContent>Save to dataset</TooltipContent>
@@ -94,7 +95,7 @@ export function SaveAssetButton({ image, annotations, labels, onSaved, iconOnly 
             >
                 {isSaving ? (
                     <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Spinner className="h-4 w-4" />
                         <span>Saving...</span>
                     </>
                 ) : isSaved ? (

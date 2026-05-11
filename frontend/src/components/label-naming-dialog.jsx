@@ -22,6 +22,8 @@ export function LabelNamingDialog({
     const [useExisting, setUseExisting] = useState(false);
     const [selectedExistingLabelId, setSelectedExistingLabelId] = useState(null);
 
+    const topLabels = [...existingLabels].sort((a, b) => b.count - a.count).slice(0, 6);
+
     useEffect(() => {
         if (!isOpen) {
             setLabelName('');
@@ -131,6 +133,24 @@ export function LabelNamingDialog({
                                         />
                                     ))}
                                 </div>
+                                {topLabels.length > 0 && (
+                                    <div className="mt-4">
+                                        <p className="text-xs text-muted-foreground mb-2">Top labels (click to use):</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {topLabels.map(label => (
+                                                <button 
+                                                    key={label.id} 
+                                                    onClick={() => onConfirm(label.id)}
+                                                    className="text-[10px] px-2 py-1 rounded-full border bg-secondary/50 flex items-center gap-1.5 hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer"
+                                                    style={{ borderColor: label.color + '40' }}
+                                                >
+                                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: label.color }}></span>
+                                                    {label.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

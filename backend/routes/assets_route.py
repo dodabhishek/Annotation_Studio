@@ -198,42 +198,38 @@ def delete_asset(asset_id):
         return jsonify({'error': str(e)}), 500
 
 
+from service.export_service import generate_export_zip
+
 @assets_bp.route('/export/zip', methods=['GET'])
 def export_assets_zip():
     """
-    Export all assets as a single ZIP archive containing images and annotations.
+    Export all assets as a single ZIP archive in the requested format.
+    Accepts 'format' query parameter.
     """
     try:
-        memory_file = io.BytesIO()
-        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-            images_dir = os.path.join(ASSETS_DIR, 'images')
-            annotations_dir = os.path.join(ASSETS_DIR, 'annotations')
+        format_type = request.args.get('format', 'default').lower()
+        
+        # Map common YOLO variants to generic 'yolo'
+        if format_type.startswith('yolo') and format_type != 'yolo darknet':
+            format_type = 'yolo'
+        elif format_type == 'yolo darknet':
+            format_type = 'yolo'
+        elif format_type == 'pascal voc':
+            format_type = 'voc'
+        elif format_type == 'tensorflow object detection':
+            format_type = 'csv'
+        elif format_type == 'png mask':
+            format_type = 'png'
             
-            # Add images
-            if os.path.exists(images_dir):
-                for root, _, files in os.walk(images_dir):
-                    for file in files:
-                        if not file.startswith('.'):
-                            file_path = os.path.join(root, file)
-                            arcname = os.path.join('images', os.path.relpath(file_path, images_dir))
-                            zf.write(file_path, arcname)
-            
-            # Add annotations
-            if os.path.exists(annotations_dir):
-                for root, _, files in os.walk(annotations_dir):
-                    for file in files:
-                        if not file.startswith('.'):
-                            file_path = os.path.join(root, file)
-                            arcname = os.path.join('annotations', os.path.relpath(file_path, annotations_dir))
-                            zf.write(file_path, arcname)
+        memory_file = generate_export_zip(ASSETS_DIR, format_type)
                             
-        memory_file.seek(0)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        format_suffix = f"_{format_type}" if format_type != 'default' else ""
         return send_file(
             memory_file,
             mimetype='application/zip',
             as_attachment=True,
-            download_name=f'dataset_{timestamp}.zip'
+            download_name=f'dataset{format_suffix}_{timestamp}.zip'
         )
 
     except Exception as e:

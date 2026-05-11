@@ -13,6 +13,7 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 1.5rem;
+    flex-wrap: wrap;
 }
 
 .assets-title {
@@ -51,6 +52,8 @@
     display: flex;
     gap: 1rem;
     align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
 }
 
 .filter-group {
@@ -127,7 +130,8 @@
 
 .assets-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-auto-rows: max-content;
     gap: 1.5rem;
     overflow-y: auto;
     padding-right: 0.5rem;
@@ -159,6 +163,7 @@
     border: 1px solid var(--border);
     background: var(--card);
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .asset-card:hover {
@@ -302,4 +307,19 @@
     .asset-card:hover {
         box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
     }
+}
+
+/* Export Modal Styles */
+.export-format-selector::-webkit-scrollbar {
+    width: 6px;
+}
+.export-format-selector::-webkit-scrollbar-track {
+    background: transparent;
+}
+.export-format-selector::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+.export-format-selector::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
 }

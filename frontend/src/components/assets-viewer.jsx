@@ -1,9 +1,75 @@
 import { useState, useEffect } from 'react';
 import { useAssetsManager } from '@/hooks/use-assets-manager';
-import { Trash2, Eye, Filter, BarChart3, Download, AlertCircle, Loader2, Image, FileJson } from 'lucide-react';
+import { Trash2, Eye, Filter, BarChart3, Download, AlertCircle, Image, FileJson } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import './assets-viewer.css';
+
+const EXPORT_FORMATS = [
+    {
+        category: "JSON",
+        formats: [
+            { id: "coco", label: "COCO" },
+            { id: "coco-segmentation", label: "COCO Segmentation" },
+            { id: "coco-mmdetection", label: "COCO-MMDetection" },
+            { id: "createml", label: "CreateML" },
+            { id: "paligemma", label: "PaliGemma" },
+            { id: "florence-2", label: "Florence 2 Object Detection" },
+            { id: "openai", label: "OpenAI" },
+            { id: "jsonl", label: "JSONL" }
+        ]
+    },
+    {
+        category: "XML",
+        formats: [
+            { id: "pascal-voc", label: "Pascal VOC" }
+        ]
+    },
+    {
+        category: "TXT",
+        formats: [
+            { id: "yolo-darknet", label: "YOLO Darknet" },
+            { id: "yolov5-pytorch", label: "YOLO v5 PyTorch" },
+            { id: "yolov7-pytorch", label: "YOLO v7 PyTorch" },
+            { id: "yolov8", label: "YOLOv8" },
+            { id: "yolov9", label: "YOLOv9" },
+            { id: "yolov11", label: "YOLOv11" },
+            { id: "yolov12", label: "YOLOv12" },
+            { id: "yolov26", label: "YOLO26" },
+            { id: "yolov8-obb", label: "YOLOv8 Oriented Bounding Boxes" },
+            { id: "yolov5-obb", label: "YOLOv5 Oriented Bounding Boxes" },
+            { id: "yolo-v3-keras", label: "YOLO v3 Keras" },
+            { id: "yolo-v4-pytorch", label: "YOLO v4 PyTorch" },
+            { id: "scaled-yolov4", label: "Scaled-YOLOv4" },
+            { id: "meituan-yolov6", label: "meituan/YOLOv6" }
+        ]
+    },
+    {
+        category: "CSV",
+        formats: [
+            { id: "tensorflow-object-detection", label: "Tensorflow Object Detection" },
+            { id: "retinanet-keras", label: "RetinaNet Keras" },
+            { id: "multi-label-classification", label: "Multi-Label Classification" }
+        ]
+    },
+    {
+        category: "Image",
+        formats: [
+            { id: "folder-structure", label: "Folder Structure" },
+            { id: "png-mask", label: "PNG Mask" },
+            { id: "sam-2", label: "SAM 2" }
+        ]
+    },
+    {
+        category: "Other",
+        formats: [
+            { id: "openai-clip-classification", label: "OpenAI CLIP Classification" },
+            { id: "tensorflow-tfrecord", label: "Tensorflow TFRecord" },
+            { id: "server-benchmark", label: "Server Benchmark" }
+        ]
+    }
+];
 
 export function AssetsViewer() {
     const assetsManager = useAssetsManager();
@@ -12,6 +78,8 @@ export function AssetsViewer() {
     const [assetDetails, setAssetDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [imageDimensions, setImageDimensions] = useState(null);
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [selectedFormat, setSelectedFormat] = useState('yolov11');
 
     useEffect(() => {
         assetsManager.loadAssets();
@@ -68,11 +136,11 @@ export function AssetsViewer() {
                 </div>
                 
                 <Button 
-                    onClick={() => window.location.href = '/api/assets/export/zip'}
+                    onClick={() => setShowExportModal(true)}
                     className="gap-2 shrink-0"
                 >
                     <Download className="h-4 w-4" />
-                    Download Dataset
+                    Export Dataset
                 </Button>
             </div>
 
@@ -88,7 +156,7 @@ export function AssetsViewer() {
             <div className="assets-grid-container">
                 {assetsManager.loading ? (
                     <div className="loading-state">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <Spinner className="w-8 h-8 text-primary" />
                         <p>Loading assets...</p>
                     </div>
                 ) : assets.length === 0 ? (
@@ -120,7 +188,7 @@ export function AssetsViewer() {
                     <DialogTitle>Asset Details</DialogTitle>
                     {loadingDetails ? (
                         <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            <Spinner className="w-6 h-6 text-primary" />
                         </div>
                     ) : assetDetails ? (
                         <div className="overflow-auto flex-1">
@@ -299,6 +367,47 @@ export function AssetsViewer() {
                             </div>
                         </div>
                     ) : null}
+                </DialogContent>
+            </Dialog>
+
+            {/* Export Dataset Modal */}
+            <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+                <DialogContent className="sm:max-w-[450px]">
+                    <DialogTitle className="text-xl font-semibold mb-4">Export Dataset</DialogTitle>
+                    <DialogDescription className="text-sm text-muted-foreground mb-4">
+                        Select a format to export your dataset annotations.
+                    </DialogDescription>
+                    <div className="export-modal-body">
+                        <div className="export-format-selector h-[400px] overflow-y-auto pr-2 border rounded-md bg-background">
+                            {EXPORT_FORMATS.map((group) => (
+                                <div key={group.category} className="mb-2">
+                                    <div className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider mb-1 px-4 pt-3 pb-1">
+                                        {group.category}
+                                    </div>
+                                    {group.formats.map((format) => (
+                                        <div 
+                                            key={format.id}
+                                            className={`export-format-item flex items-center px-4 py-2 cursor-pointer text-sm font-medium transition-colors ${selectedFormat === format.id ? 'bg-secondary/80 text-foreground' : 'text-foreground/80 hover:bg-secondary/40'}`}
+                                            onClick={() => setSelectedFormat(format.id)}
+                                        >
+                                            {format.label}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-end gap-2 mt-6">
+                            <Button variant="outline" onClick={() => setShowExportModal(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={() => {
+                                window.location.href = `/api/assets/export/zip?format=${encodeURIComponent(selectedFormat.replace(/-/g, ' '))}`;
+                                setShowExportModal(false);
+                            }}>
+                                Continue
+                            </Button>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

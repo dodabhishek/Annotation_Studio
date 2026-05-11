@@ -9,9 +9,10 @@ import { LabelNamingDialog } from '@/components/label-naming-dialog';
 import { SaveAssetButton } from '@/components/save-asset-button';
 import { AssetsViewer } from '@/components/assets-viewer';
 import { useAnnotationStore } from '@/hooks/use-annotation-store';
-import { Tags, Layers, ArrowLeft, Sparkles, Loader2, AlertCircle, ImageIcon, X, Database } from 'lucide-react';
+import { Tags, Layers, ArrowLeft, Sparkles, AlertCircle, ImageIcon, X, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import { detectObjects } from '@/lib/api';
 import { generateCOCODataset, downloadCOCODataset, getImageDimensions } from '@/lib/coco-export';
 
@@ -118,6 +119,7 @@ export function LabelingApp({ initialFiles, selectedModel, onBack }) {
             }
             const shortcuts = {
                 'v': 'select',
+                's': 'sam-point',
                 'b': 'bbox',
                 'p': 'polygon',
                 'l': 'polyline',
@@ -295,7 +297,7 @@ export function LabelingApp({ initialFiles, selectedModel, onBack }) {
             >
               {isDetecting ? (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  <Spinner className="w-3.5 h-3.5 mr-1.5" />
                   Detecting…
                 </>
               ) : (
@@ -404,7 +406,8 @@ export function LabelingApp({ initialFiles, selectedModel, onBack }) {
       {/* Status bar */}
       <footer className="h-6 border-t border-border bg-card px-4 flex items-center text-xs text-muted-foreground">
         <span>
-          Press <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">B</kbd> for Box,{' '}
+          Press <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">S</kbd> for SAM,{' '}
+          <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">B</kbd> for Box,{' '}
           <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">P</kbd> for Polygon,{' '}
           <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">L</kbd> for Line,{' '}
           <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">K</kbd> for Point,{' '}
