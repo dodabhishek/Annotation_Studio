@@ -52,9 +52,7 @@ def sam_point():
 
     image_source = cv2.imread(image_path)
     if image_source is None:
-        return jsonify({"error": "Invalid image"}), 400
-        
-    image_source = cv2.cvtColor(image_source, cv2.COLOR_BGR2RGB)
+        image_source = cv2.cvtColor(image_source, cv2.COLOR_BGR2RGB)
     
     polygon = predict_point(image_source, x, y)
     

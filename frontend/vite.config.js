@@ -16,11 +16,14 @@ export default defineConfig({
     postcss: './postcss.config.mjs',
   },
   server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
     proxy: {
-      '/detect': 'http://127.0.0.1:5000',
-      '/output': 'http://127.0.0.1:5000',
-      '/api': 'http://127.0.0.1:5000',
-      '/sam': 'http://127.0.0.1:5000',
+      '/detect': 'http://127.0.0.1:5001',
+      '/output': 'http://127.0.0.1:5001',
+      '/api': 'http://127.0.0.1:5001',
+      '/sam': 'http://127.0.0.1:5001',
     },
   },
 })

@@ -1,6 +1,7 @@
 # Backend Framework
 flask
 flask-cors
+gunicorn
 
 # Deep Learning
 torch
@@ -12,32 +13,33 @@ opencv-python
 pillow
 numpy
 matplotlib
+scikit-image
 
-# AI Models
+# AI / Detection Models
 ultralytics
 supervision
-transformers
-timm
+transformers==4.30.2
+timm==0.9.12
+
+# SAM / Segmentation
+sam2
 
 # GroundingDINO Dependencies
 pyyaml
 requests
 scipy
 einops
+addict
+yapf
 
 # Utilities
 tqdm
 pandas
-
-# Image Processing
-scikit-image
-
-# API / Server
-gunicorn
-
-# Annotation / JSON
-pycocotools
-
-# Optional but Useful
-jupyter
 ipython
+jupyter
+
+# Annotation
+pycocotoolspymongo
+google-auth
+PyJWT
+python-dotenv

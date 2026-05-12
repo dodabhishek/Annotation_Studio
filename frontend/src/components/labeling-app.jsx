@@ -9,14 +9,14 @@ import { LabelNamingDialog } from '@/components/label-naming-dialog';
 import { SaveAssetButton } from '@/components/save-asset-button';
 import { AssetsViewer } from '@/components/assets-viewer';
 import { useAnnotationStore } from '@/hooks/use-annotation-store';
-import { Tags, Layers, ArrowLeft, Sparkles, AlertCircle, ImageIcon, X, Database } from 'lucide-react';
+import { Download, Sparkles, AlertCircle, ArrowLeft, Tags, LayoutDashboard, Database, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { detectObjects } from '@/lib/api';
 import { generateCOCODataset, downloadCOCODataset, getImageDimensions } from '@/lib/coco-export';
 
-export function LabelingApp({ initialFiles, selectedModel, onBack }) {
+export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogout }) {
     const store = useAnnotationStore();
     const initializedRef = useRef(false);
 
@@ -181,42 +181,74 @@ export function LabelingApp({ initialFiles, selectedModel, onBack }) {
         URL.revokeObjectURL(url);
     }, [store]);
     return (<div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="h-16 border-b border-border flex items-center px-6 bg-card shadow-sm">
+      {/* Header — SetuLytix style */}
+      <header className="app-header h-16 flex items-center px-6 shrink-0 gap-4 z-10">
         <div className="flex items-center gap-3">
           {onBack && (
-            <Button variant="ghost" size="sm" onClick={onBack} className="mr-1 h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" onClick={onBack} className="mr-1 h-8 w-8 p-0 hover:bg-secondary/80">
               <ArrowLeft className="h-4 w-4"/>
             </Button>
           )}
-          <div className="relative w-10 h-10 rounded-xl bg-primary flex items-center justify-center animate-sparkle-pulse">
-            <Tags className="h-5 w-5 text-primary-foreground"/>
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-particle"/>
-            <span className="absolute -bottom-0.5 -left-1 w-1.5 h-1.5 bg-blue-accent rounded-full animate-particle-delay-1"/>
-            <span className="absolute top-0 -left-0.5 w-1 h-1 bg-blue-glow rounded-full animate-particle-delay-2"/>
+          {/* Brand logo */}
+          <div className="brand-logo animate-sparkle-pulse relative">
+            <Tags className="h-5 w-5 text-white"/>
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full animate-particle" style={{background:'#60a5fa'}}/>
+            <span className="absolute -bottom-0.5 -left-1 w-1.5 h-1.5 rounded-full animate-particle-delay-1" style={{background:'#06b6d4'}}/>
           </div>
           <div>
-            <span className="font-semibold text-foreground text-lg">Annotation Studio</span>
-            <p className="text-xs text-muted-foreground">Image Annotation Tool</p>
+            <span className="font-bold text-foreground text-lg tracking-tight">
+              Annotation<span className="gradient-text"> Studio</span>
+            </span>
+            <p className="text-xs text-muted-foreground leading-none mt-0.5">Image Annotation Tool</p>
           </div>
           {selectedModel && (
-            <span className="ml-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground bg-secondary px-2.5 py-1 rounded-full border border-border">
+            <span
+              className="ml-2 text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full"
+              style={{
+                background: 'rgba(56,189,248,0.12)',
+                border: '1px solid rgba(56,189,248,0.35)',
+                color: '#38bdf8',
+              }}
+            >
               {selectedModel.replace(/-/g, ' ')}
             </span>
           )}
         </div>
         <div className="flex-1"/>
         <div className="flex items-center gap-3">
-          {/* Progress badge with blue sprinkle indicator */}
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border">
+          {/* Progress badge */}
+          <div className="status-badge">
             <div className="relative sprinkle-indicator">
               <span className="flex h-2.5 w-2.5 rounded-full bg-primary animate-sprinkle"/>
             </div>
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-sm font-semibold text-foreground">
               {store.images.filter(i => i.labeled).length} / {store.images.length}
             </span>
-            <span className="text-sm text-muted-foreground">labeled</span>
+            <span className="text-xs text-muted-foreground">labeled</span>
           </div>
+
+          {/* User Profile / Logout */}
+          {user && (
+            <div className="flex items-center gap-4 ml-4 pl-4 border-l border-border">
+              <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full">
+                {user.picture ? (
+                  <img src={user.picture} alt="Profile" className="w-5 h-5 rounded-full" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[10px] text-white font-bold">
+                    {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                  </div>
+                )}
+                <span className="text-xs font-medium text-blue-100">{user.name || user.email}</span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -267,13 +299,20 @@ export function LabelingApp({ initialFiles, selectedModel, onBack }) {
 
         {/* Right sidebar - Labels & Annotations */}
         <aside className="w-72 border-l border-border bg-card flex-shrink-0 flex flex-col">
-          {/* AI Auto-Detect Panel */}
-          <div className="border-b border-border p-3 space-y-2.5">
+          {/* AI Auto-Detect Panel — gradient top border */}
+          <div className="ai-detect-panel space-y-2.5">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">AI Detect</span>
+              <Sparkles className="h-3.5 w-3.5" style={{color:'#38bdf8'}} />
+              <span className="text-xs font-bold text-foreground uppercase tracking-wider">AI Detect</span>
               {selectedModel && (
-                <span className="ml-auto text-[9px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">
+                <span
+                  className="ml-auto text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                  style={{
+                    background: 'rgba(56,189,248,0.12)',
+                    border: '1px solid rgba(56,189,248,0.3)',
+                    color: '#38bdf8',
+                  }}
+                >
                   {selectedModel.replace(/-/g, ' ')}
                 </span>
               )}
@@ -404,19 +443,19 @@ export function LabelingApp({ initialFiles, selectedModel, onBack }) {
       </div>
 
       {/* Status bar */}
-      <footer className="h-6 border-t border-border bg-card px-4 flex items-center text-xs text-muted-foreground">
-        <span>
-          Press <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">S</kbd> for SAM,{' '}
-          <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">B</kbd> for Box,{' '}
-          <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">P</kbd> for Polygon,{' '}
-          <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">L</kbd> for Line,{' '}
-          <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">K</kbd> for Point,{' '}
-          <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">V</kbd> for Select
+      <footer className="h-7 border-t border-border px-4 flex items-center text-xs text-muted-foreground" style={{background:'rgba(6,13,32,0.85)'}}>
+        <span className="flex items-center gap-1.5 flex-wrap">
+          Press{' '}
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>S</kbd> SAM &nbsp;
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>B</kbd> Box &nbsp;
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>P</kbd> Polygon &nbsp;
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>V</kbd> Select
         </span>
         <div className="flex-1"/>
-        <span>
-          <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">←</kbd>{' '}
-          <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">→</kbd> Navigate images
+        <span className="flex items-center gap-1.5">
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>←</kbd>
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>→</kbd>
+          Navigate images
         </span>
       </footer>
 
