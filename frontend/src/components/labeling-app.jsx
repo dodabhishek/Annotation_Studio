@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUploader } from '@/components/image-uploader';
 import { LabelManager } from '@/components/label-manager';
@@ -9,7 +10,7 @@ import { LabelNamingDialog } from '@/components/label-naming-dialog';
 import { SaveAssetButton } from '@/components/save-asset-button';
 import { AssetsViewer } from '@/components/assets-viewer';
 import { useAnnotationStore } from '@/hooks/use-annotation-store';
-import { Download, Sparkles, AlertCircle, ArrowLeft, Tags, LayoutDashboard, Database, LogOut } from 'lucide-react';
+import { Download, Sparkles, AlertCircle, ArrowLeft, Tags, LayoutDashboard, Database, LogOut, Layers, Zap, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
@@ -110,6 +111,7 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
         setPendingAnnotation(null);
         setShowLabelNamingDialog(false);
     }, []);
+
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -170,6 +172,7 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [store]);
+
     const handleExport = useCallback(() => {
         const data = store.exportAnnotations();
         const blob = new Blob([data], { type: 'application/json' });
@@ -180,296 +183,402 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
         a.click();
         URL.revokeObjectURL(url);
     }, [store]);
-    return (<div className="h-screen flex flex-col bg-background">
-      {/* Header — SetuLytix style */}
-      <header className="app-header h-16 flex items-center px-6 shrink-0 gap-4 z-10">
-        <div className="flex items-center gap-3">
-          {onBack && (
-            <Button variant="ghost" size="sm" onClick={onBack} className="mr-1 h-8 w-8 p-0 hover:bg-secondary/80">
-              <ArrowLeft className="h-4 w-4"/>
-            </Button>
-          )}
-          {/* Brand logo */}
-          <div className="brand-logo animate-sparkle-pulse relative">
-            <Tags className="h-5 w-5 text-white"/>
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full animate-particle" style={{background:'#60a5fa'}}/>
-            <span className="absolute -bottom-0.5 -left-1 w-1.5 h-1.5 rounded-full animate-particle-delay-1" style={{background:'#06b6d4'}}/>
-          </div>
-          <div>
-            <span className="font-bold text-foreground text-lg tracking-tight">
-              Annotation<span className="gradient-text"> Studio</span>
-            </span>
-            <p className="text-xs text-muted-foreground leading-none mt-0.5">Image Annotation Tool</p>
-          </div>
-          {selectedModel && (
-            <span
-              className="ml-2 text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full"
-              style={{
-                background: 'rgba(56,189,248,0.12)',
-                border: '1px solid rgba(56,189,248,0.35)',
-                color: '#38bdf8',
-              }}
+
+    return (
+      <div className="h-screen flex flex-col bg-background overflow-hidden">
+        {/* Background gradients */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-sam-cyan/3 rounded-full blur-[150px]" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-sam-purple/3 rounded-full blur-[120px]" />
+        </div>
+
+        {/* Header */}
+        <motion.header 
+          className="app-header h-16 flex items-center px-6 shrink-0 gap-4 z-20"
+          initial={{ y: -100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button variant="ghost" size="sm" onClick={onBack} className="mr-1 h-9 w-9 p-0 hover:bg-sam-cyan/10 rounded-xl">
+                  <ArrowLeft className="h-4 w-4"/>
+                </Button>
+              </motion.div>
+            )}
+            {/* Brand logo */}
+            <motion.div 
+              className="brand-logo"
+              whileHover={{ scale: 1.1, rotate: 5 }}
             >
-              {selectedModel.replace(/-/g, ' ')}
-            </span>
-          )}
-        </div>
-        <div className="flex-1"/>
-        <div className="flex items-center gap-3">
-          {/* Progress badge */}
-          <div className="status-badge">
-            <div className="relative sprinkle-indicator">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-primary animate-sprinkle"/>
+              <Tags className="h-5 w-5 text-primary-foreground"/>
+            </motion.div>
+            <div>
+              <span className="font-bold text-foreground text-lg tracking-tight">
+                Annotation<span className="gradient-text"> Studio</span>
+              </span>
+              <p className="text-xs text-muted-foreground leading-none mt-0.5">Image Annotation Tool</p>
             </div>
-            <span className="text-sm font-semibold text-foreground">
-              {store.images.filter(i => i.labeled).length} / {store.images.length}
-            </span>
-            <span className="text-xs text-muted-foreground">labeled</span>
-          </div>
-
-          {/* User Profile / Logout */}
-          {user && (
-            <div className="flex items-center gap-4 ml-4 pl-4 border-l border-border">
-              <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full">
-                {user.picture ? (
-                  <img src={user.picture} alt="Profile" className="w-5 h-5 rounded-full" />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[10px] text-white font-bold">
-                    {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                  </div>
-                )}
-                <span className="text-xs font-medium text-blue-100">{user.name || user.email}</span>
-              </div>
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
-                title="Logout"
+            {selectedModel && (
+              <motion.span
+                className="ml-2 text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
               >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+                {selectedModel.replace(/-/g, ' ')}
+              </motion.span>
+            )}
+          </div>
+          <div className="flex-1"/>
+          <div className="flex items-center gap-3">
+            {/* Progress badge */}
+            <motion.div 
+              className="status-badge"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="relative">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-sam-cyan animate-pulse"/>
+              </div>
+              <span className="text-sm font-semibold text-foreground">
+                {store.images.filter(i => i.labeled).length} / {store.images.length}
+              </span>
+              <span className="text-xs text-muted-foreground">labeled</span>
+            </motion.div>
 
-      {/* Toolbar */}
-      <Toolbar 
-          selectedTool={store.selectedTool} 
-          onSelectTool={store.setSelectedTool} 
-          zoom={store.zoom} 
-          onZoomIn={() => store.setZoom(Math.min(store.zoom * 1.2, 5))} 
-          onZoomOut={() => store.setZoom(Math.max(store.zoom / 1.2, 0.1))} 
-          onResetView={store.resetZoom} 
-          onDeleteSelected={() => {
-            if (store.selectedAnnotationId) {
-                store.deleteAnnotation(store.selectedAnnotationId);
-            }
-          }} 
-          onExport={handleExport} 
-          hasSelectedAnnotation={!!store.selectedAnnotationId} 
-          canGoNext={store.currentImageIndex < store.images.length - 1} 
-          canGoPrev={store.currentImageIndex > 0} 
-          onNext={store.nextImage} 
-          onPrev={store.prevImage} 
-          currentIndex={store.currentImageIndex} 
-          totalImages={store.images.length}
-          saveButton={
-            <SaveAssetButton 
-                image={store.currentImage} 
-                annotations={store.currentImage?.annotations || []} 
-                labels={store.labels}
-                iconOnly={true}
+            {/* User Profile / Logout */}
+            {user && (
+              <div className="flex items-center gap-4 ml-4 pl-4 border-l border-border">
+                <motion.div 
+                  className="flex items-center gap-2 bg-sam-cyan/10 border border-sam-cyan/20 px-3 py-1.5 rounded-full"
+                  whileHover={{ scale: 1.02 }}
+                >
+                  {user.picture ? (
+                    <img src={user.picture} alt="Profile" className="w-5 h-5 rounded-full" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-sam-cyan flex items-center justify-center text-[10px] text-background font-bold">
+                      {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                    </div>
+                  )}
+                  <span className="text-xs font-medium text-foreground">{user.name || user.email}</span>
+                </motion.div>
+                <motion.button
+                  onClick={onLogout}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-all"
+                  title="Logout"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <LogOut className="h-4 w-4" />
+                </motion.button>
+              </div>
+            )}
+          </div>
+        </motion.header>
+
+        {/* Toolbar */}
+        <motion.div
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Toolbar 
+              selectedTool={store.selectedTool} 
+              onSelectTool={store.setSelectedTool} 
+              zoom={store.zoom} 
+              onZoomIn={() => store.setZoom(Math.min(store.zoom * 1.2, 5))} 
+              onZoomOut={() => store.setZoom(Math.max(store.zoom / 1.2, 0.1))} 
+              onResetView={store.resetZoom} 
+              onDeleteSelected={() => {
+                if (store.selectedAnnotationId) {
+                    store.deleteAnnotation(store.selectedAnnotationId);
+                }
+              }} 
+              onExport={handleExport} 
+              hasSelectedAnnotation={!!store.selectedAnnotationId} 
+              canGoNext={store.currentImageIndex < store.images.length - 1} 
+              canGoPrev={store.currentImageIndex > 0} 
+              onNext={store.nextImage} 
+              onPrev={store.prevImage} 
+              currentIndex={store.currentImageIndex} 
+              totalImages={store.images.length}
+              saveButton={
+                <SaveAssetButton 
+                    image={store.currentImage} 
+                    annotations={store.currentImage?.annotations || []} 
+                    labels={store.labels}
+                    iconOnly={true}
+                />
+              }
+          />
+        </motion.div>
+
+        {/* Main content */}
+        <div className="flex-1 flex overflow-hidden z-10">
+          {/* Left sidebar - Images */}
+          <motion.aside 
+            className="w-64 border-r border-border bg-card/80 backdrop-blur-xl flex-shrink-0"
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.15 }}
+          >
+            <ImageUploader 
+              onUpload={store.addImages} 
+              images={store.images} 
+              onRemoveImage={store.removeImage} 
+              currentImageIndex={store.currentImageIndex} 
+              onSelectImage={store.goToImage}
             />
-          }
-      />
+          </motion.aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar - Images */}
-        <aside className="w-64 border-r border-border bg-card flex-shrink-0">
-          <ImageUploader onUpload={store.addImages} images={store.images} onRemoveImage={store.removeImage} currentImageIndex={store.currentImageIndex} onSelectImage={store.goToImage}/>
-        </aside>
+          {/* Canvas */}
+          <motion.div
+            className="flex-1"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <AnnotationCanvas 
+              image={store.currentImage} 
+              annotations={store.currentImage?.annotations || []} 
+              labels={store.labels} 
+              selectedTool={store.selectedTool} 
+              selectedLabelId={store.selectedLabelId} 
+              selectedAnnotationId={store.selectedAnnotationId} 
+              zoom={store.zoom} 
+              pan={store.pan} 
+              onAddAnnotation={handleAnnotationCreated} 
+              onUpdateAnnotation={store.updateAnnotation} 
+              onSelectAnnotation={store.setSelectedAnnotationId} 
+              onZoomChange={store.setZoom} 
+              onPanChange={store.setPan}
+            />
+          </motion.div>
 
-        {/* Canvas */}
-        <AnnotationCanvas image={store.currentImage} annotations={store.currentImage?.annotations || []} 
-          labels={store.labels} selectedTool={store.selectedTool} selectedLabelId={store.selectedLabelId} 
-              selectedAnnotationId={store.selectedAnnotationId} zoom={store.zoom} pan={store.pan} onAddAnnotation={handleAnnotationCreated} 
-                onUpdateAnnotation={store.updateAnnotation} onSelectAnnotation={store.setSelectedAnnotationId} onZoomChange={store.setZoom} 
-                  onPanChange={store.setPan}/>
-
-        {/* Right sidebar - Labels & Annotations */}
-        <aside className="w-72 border-l border-border bg-card flex-shrink-0 flex flex-col">
-          {/* AI Auto-Detect Panel — gradient top border */}
-          <div className="ai-detect-panel space-y-2.5">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5" style={{color:'#38bdf8'}} />
-              <span className="text-xs font-bold text-foreground uppercase tracking-wider">AI Detect</span>
-              {selectedModel && (
-                <span
-                  className="ml-auto text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                  style={{
-                    background: 'rgba(56,189,248,0.12)',
-                    border: '1px solid rgba(56,189,248,0.3)',
-                    color: '#38bdf8',
+          {/* Right sidebar - Labels & Annotations */}
+          <motion.aside 
+            className="w-72 border-l border-border bg-card/80 backdrop-blur-xl flex-shrink-0 flex flex-col"
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.15 }}
+          >
+            {/* AI Auto-Detect Panel */}
+            <div className="ai-detect-panel space-y-3">
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ 
+                    rotate: isDetecting ? 360 : 0,
+                  }}
+                  transition={{ 
+                    duration: 1, 
+                    repeat: isDetecting ? Infinity : 0,
+                    ease: "linear"
                   }}
                 >
-                  {selectedModel.replace(/-/g, ' ')}
-                </span>
+                  <Sparkles className="h-4 w-4 text-sam-cyan" />
+                </motion.div>
+                <span className="text-xs font-bold text-foreground uppercase tracking-wider">AI Detect</span>
+                {selectedModel && (
+                  <span className="ml-auto text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">
+                    {selectedModel.replace(/-/g, ' ')}
+                  </span>
+                )}
+              </div>
+
+              <input
+                type="text"
+                value={detectPrompt}
+                onChange={(e) => setDetectPrompt(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !isDetecting) handleAutoDetect(); }}
+                placeholder="What to detect? e.g. person, car ."
+                disabled={isDetecting}
+                className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-secondary text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-sam-cyan/50 focus:border-sam-cyan/50 disabled:opacity-50 transition-all"
+              />
+
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  size="sm"
+                  className="w-full text-xs h-9 gradient-btn"
+                  onClick={handleAutoDetect}
+                  disabled={isDetecting || !store.currentImage}
+                >
+                  {isDetecting ? (
+                    <>
+                      <Spinner className="w-3.5 h-3.5 mr-1.5" />
+                      Detecting...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-3.5 w-3.5 mr-1.5" />
+                      Auto Detect
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+
+              <AnimatePresence>
+                {detectError && (
+                  <motion.div 
+                    className="flex items-start gap-1.5 text-[11px] text-destructive"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>{detectError}</span>
+                  </motion.div>
+                )}
+                {detectResult && !detectError && (
+                  <motion.p 
+                    className="text-[11px] text-accent"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    {detectResult}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              {outputImageUrl && !detectError && (
+                <motion.div 
+                  className="space-y-1.5"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Backend Output</span>
+                    </div>
+                    <button
+                      onClick={() => setShowOutputDialog(true)}
+                      className="text-[10px] text-sam-cyan hover:underline cursor-pointer"
+                    >
+                      View full size
+                    </button>
+                  </div>
+                  <motion.button
+                    onClick={() => setShowOutputDialog(true)}
+                    className="w-full rounded-xl overflow-hidden border border-border hover:border-sam-cyan/50 transition-all cursor-pointer"
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <img
+                      src={outputImageUrl}
+                      alt="Detection output"
+                      className="w-full h-auto object-contain bg-background/50"
+                    />
+                  </motion.button>
+                </motion.div>
               )}
             </div>
 
-            <input
-              type="text"
-              value={detectPrompt}
-              onChange={(e) => setDetectPrompt(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !isDetecting) handleAutoDetect(); }}
-              placeholder="What to detect? e.g. person, car ."
-              disabled={isDetecting}
-              className="w-full text-xs px-2.5 py-1.5 rounded-md border border-border bg-secondary text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-            />
-
-            <Button
-              size="sm"
-              className="w-full text-xs h-8"
-              onClick={handleAutoDetect}
-              disabled={isDetecting || !store.currentImage}
-            >
-              {isDetecting ? (
-                <>
-                  <Spinner className="w-3.5 h-3.5 mr-1.5" />
-                  Detecting…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                  Auto Detect
-                </>
-              )}
-            </Button>
-
-            {detectError && (
-              <div className="flex items-start gap-1.5 text-[11px] text-red-400">
-                <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                <span>{detectError}</span>
-              </div>
-            )}
-            {detectResult && !detectError && (
-              <p className="text-[11px] text-emerald-400">{detectResult}</p>
-            )}
-
-            {outputImageUrl && !detectError && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <ImageIcon className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Backend Output</span>
+            <Dialog open={showOutputDialog} onOpenChange={setShowOutputDialog}>
+              <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-card border-border">
+                <DialogTitle className="sr-only">Detection Output</DialogTitle>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-sam-cyan" />
+                    <span className="text-sm font-semibold text-foreground">Detection Output</span>
+                    {detectResult && (
+                      <span className="text-xs text-accent ml-2">{detectResult}</span>
+                    )}
                   </div>
-                  <button
-                    onClick={() => setShowOutputDialog(true)}
-                    className="text-[10px] text-primary hover:underline cursor-pointer"
-                  >
-                    View full size
-                  </button>
                 </div>
-                <button
-                  onClick={() => setShowOutputDialog(true)}
-                  className="w-full rounded-md overflow-hidden border border-border hover:border-primary/50 transition-colors cursor-pointer"
-                >
-                  <img
-                    src={outputImageUrl}
-                    alt="Detection output"
-                    className="w-full h-auto object-contain bg-black/50"
-                  />
-                </button>
-              </div>
-            )}
-          </div>
-
-          <Dialog open={showOutputDialog} onOpenChange={setShowOutputDialog}>
-            <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
-              <DialogTitle className="sr-only">Detection Output</DialogTitle>
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold">Detection Output</span>
-                  {detectResult && (
-                    <span className="text-xs text-emerald-400 ml-2">{detectResult}</span>
+                <div className="overflow-auto max-h-[calc(90vh-4rem)] bg-background/80 flex items-center justify-center p-4">
+                  {outputImageUrl && (
+                    <img
+                      src={outputImageUrl}
+                      alt="Detection output - full size"
+                      className="max-w-full max-h-full object-contain rounded-lg"
+                    />
                   )}
                 </div>
-              </div>
-              <div className="overflow-auto max-h-[calc(90vh-4rem)] bg-black/80 flex items-center justify-center p-4">
-                {outputImageUrl && (
-                  <img
-                    src={outputImageUrl}
-                    alt="Detection output - full size"
-                    className="max-w-full max-h-full object-contain rounded"
+              </DialogContent>
+            </Dialog>
+
+            <Tabs defaultValue="labels" className="flex flex-col h-full">
+              <TabsList className="grid grid-cols-3 m-2 bg-secondary/50">
+                <TabsTrigger value="labels" className="text-xs data-[state=active]:bg-sam-cyan/20 data-[state=active]:text-sam-cyan">
+                  <Tags className="h-3.5 w-3.5 mr-1.5"/>
+                  Labels
+                </TabsTrigger>
+                <TabsTrigger value="annotations" className="text-xs data-[state=active]:bg-sam-cyan/20 data-[state=active]:text-sam-cyan">
+                  <Layers className="h-3.5 w-3.5 mr-1.5"/>
+                  Annotations
+                </TabsTrigger>
+                <TabsTrigger value="assets" className="text-xs data-[state=active]:bg-sam-cyan/20 data-[state=active]:text-sam-cyan">
+                  <Database className="h-3.5 w-3.5 mr-1.5"/>
+                  Dataset
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="labels" className="flex-1 m-0 overflow-hidden">
+                <LabelManager 
+                  labels={store.labels} 
+                  selectedLabelId={store.selectedLabelId} 
+                  labelCounts={labelCounts} 
+                  onSelectLabel={store.setSelectedLabelId} 
+                  onAddLabel={store.addLabel} 
+                  onUpdateLabel={store.updateLabel} 
+                  onDeleteLabel={store.deleteLabel}
+                />
+              </TabsContent>
+              
+              <TabsContent value="annotations" className="flex-1 m-0 overflow-hidden flex flex-col gap-2 p-2">
+                <div className="flex-1 overflow-hidden">
+                  <AnnotationList 
+                    annotations={store.currentImage?.annotations || []} 
+                    labels={store.labels} 
+                    selectedAnnotationId={store.selectedAnnotationId} 
+                    onSelectAnnotation={store.setSelectedAnnotationId} 
+                    onDeleteAnnotation={store.deleteAnnotation}
                   />
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+                </div>
+              </TabsContent>
 
-          <Tabs defaultValue="labels" className="flex flex-col h-full">
-            <TabsList className="grid grid-cols-3 m-2">
-              <TabsTrigger value="labels" className="text-xs">
-                <Tags className="h-3.5 w-3.5 mr-1.5"/>
-                Labels
-              </TabsTrigger>
-              <TabsTrigger value="annotations" className="text-xs">
-                <Layers className="h-3.5 w-3.5 mr-1.5"/>
-                Annotations
-              </TabsTrigger>
-              <TabsTrigger value="assets" className="text-xs">
-                <Database className="h-3.5 w-3.5 mr-1.5"/>
-                Dataset
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="labels" className="flex-1 m-0 overflow-hidden">
-              <LabelManager labels={store.labels} selectedLabelId={store.selectedLabelId} labelCounts={labelCounts} onSelectLabel={store.setSelectedLabelId} onAddLabel={store.addLabel} onUpdateLabel={store.updateLabel} onDeleteLabel={store.deleteLabel}/>
-            </TabsContent>
-            
-            <TabsContent value="annotations" className="flex-1 m-0 overflow-hidden flex flex-col gap-2 p-2">
-              <div className="flex-1 overflow-hidden">
-                <AnnotationList annotations={store.currentImage?.annotations || []} labels={store.labels} selectedAnnotationId={store.selectedAnnotationId} onSelectAnnotation={store.setSelectedAnnotationId} onDeleteAnnotation={store.deleteAnnotation}/>
-              </div>
-            </TabsContent>
+              <TabsContent value="assets" className="flex-1 m-0 overflow-hidden">
+                <AssetsViewer />
+              </TabsContent>
+            </Tabs>
+          </motion.aside>
+        </div>
 
-            <TabsContent value="assets" className="flex-1 m-0 overflow-hidden">
-              <AssetsViewer />
-            </TabsContent>
-          </Tabs>
-        </aside>
+        {/* Status bar */}
+        <motion.footer 
+          className="h-8 border-t border-border px-4 flex items-center text-xs text-muted-foreground bg-card/80 backdrop-blur-xl z-20"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.25 }}
+        >
+          <span className="flex items-center gap-1.5 flex-wrap">
+            Press{' '}
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">S</kbd> SAM{' '}
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">B</kbd> Box{' '}
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">P</kbd> Polygon{' '}
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">V</kbd> Select
+          </span>
+          <div className="flex-1"/>
+          <span className="flex items-center gap-1.5">
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">←</kbd>
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">→</kbd>
+            Navigate images
+          </span>
+        </motion.footer>
+
+        {/* Label Naming Dialog */}
+        <LabelNamingDialog
+          isOpen={showLabelNamingDialog}
+          existingLabels={store.labels.map(l => ({
+            id: l.id,
+            name: l.name,
+            color: l.color,
+            count: labelCounts[l.id] || 0,
+          }))}
+          onConfirm={handleLabelSelected}
+          onCancel={handleLabelNamingCanceled}
+        />
       </div>
-
-      {/* Status bar */}
-      <footer className="h-7 border-t border-border px-4 flex items-center text-xs text-muted-foreground" style={{background:'rgba(6,13,32,0.85)'}}>
-        <span className="flex items-center gap-1.5 flex-wrap">
-          Press{' '}
-          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>S</kbd> SAM &nbsp;
-          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>B</kbd> Box &nbsp;
-          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>P</kbd> Polygon &nbsp;
-          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>V</kbd> Select
-        </span>
-        <div className="flex-1"/>
-        <span className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>←</kbd>
-          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8'}}>→</kbd>
-          Navigate images
-        </span>
-      </footer>
-
-      {/* Label Naming Dialog */}
-      <LabelNamingDialog
-        isOpen={showLabelNamingDialog}
-        existingLabels={store.labels.map(l => ({
-          id: l.id,
-          name: l.name,
-          color: l.color,
-          count: labelCounts[l.id] || 0,
-        }))}
-        onConfirm={handleLabelSelected}
-        onCancel={handleLabelNamingCanceled}
-      />
-    </div>);
+    );
 }
