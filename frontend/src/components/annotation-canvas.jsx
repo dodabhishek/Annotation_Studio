@@ -596,16 +596,22 @@ export function AnnotationCanvas({
 
   if (!image) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-secondary/30">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center">
-            <svg className="w-8 h-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/20 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-sam-cyan/5 rounded-full blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-sam-purple/5 rounded-full blur-[80px]" />
+        </div>
+        
+        <div className="text-center relative z-10">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-sam-cyan/10 border border-sam-cyan/20 flex items-center justify-center animate-float">
+            <svg className="w-10 h-10 text-sam-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <p className="text-foreground font-medium mb-1">No image selected</p>
-          <p className="text-sm text-muted-foreground">
-            Upload images from the left panel to start labeling
+          <p className="text-foreground font-semibold text-lg mb-2">No image selected</p>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+            Upload images from the left panel to start labeling with AI-powered segmentation
           </p>
         </div>
       </div>
@@ -642,20 +648,28 @@ export function AnnotationCanvas({
       />
 
       {/* Coordinates + zoom indicator */}
-      <div className="absolute bottom-3 left-3 bg-card/90 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-muted-foreground shadow-lg border border-border flex items-center gap-3">
-        <span className="font-mono text-foreground/70">{Math.round(zoom * 100)}%</span>
+      <div className="absolute bottom-3 left-3 bg-card/90 backdrop-blur-xl rounded-xl px-4 py-2 text-xs text-muted-foreground shadow-lg border border-sam-cyan/20 flex items-center gap-4">
+        <span className="font-mono text-sam-cyan font-semibold">{Math.round(zoom * 100)}%</span>
         {cursorPosition && (
-          <span className="font-mono">
-            {Math.round(cursorPosition.x)}, {Math.round(cursorPosition.y)}
+          <span className="font-mono text-foreground/80">
+            x: {Math.round(cursorPosition.x)} y: {Math.round(cursorPosition.y)}
           </span>
         )}
         {(selectedTool === 'polygon' || selectedTool === 'polyline') &&
           currentPoints.length > 0 && (
-            <span className="text-primary font-medium">
+            <span className="text-sam-cyan font-medium">
               {currentPoints.length} pts — dbl-click or Enter to finish
             </span>
           )}
       </div>
+      
+      {/* SAM Computing indicator */}
+      {isSamComputing && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card/95 backdrop-blur-xl rounded-2xl px-6 py-4 shadow-2xl border border-sam-cyan/30 flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-sam-cyan border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium text-foreground">Computing segmentation...</span>
+        </div>
+      )}
     </div>
   );
 }
