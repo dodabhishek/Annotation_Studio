@@ -33,6 +33,9 @@ find_output.txt
 tree_output.txt
 DIRECTORY_STRUCTURE.md
 
+# Daily development logs (local only, never push)
+dailydoc/
+
 # Environment variables (secrets)
 .env
 .env.local

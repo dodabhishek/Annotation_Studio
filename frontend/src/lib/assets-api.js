@@ -1,60 +1,158 @@
+const API_BASE = 'http://127.0.0.1:5001';
+
+
 /**
- * Assets API helpers
+ * Save Asset
  */
+export async function saveAssetToBackend(
+    imageFile,
+    annotations,
+    labels,
+    imageName,
+    projectId
+) {
 
-export async function saveAssetToBackend(imageFile, annotations, labels, imageName) {
     const formData = new FormData();
+
     formData.append('image', imageFile);
-    formData.append('annotations', JSON.stringify(annotations));
-    formData.append('labels', JSON.stringify(labels));
-    formData.append('imageName', imageName || imageFile.name);
 
-    const response = await fetch('/api/assets/save', {
-        method: 'POST',
-        body: formData,
-    });
+    formData.append(
+        'annotations',
+        JSON.stringify(annotations)
+    );
+
+    formData.append(
+        'labels',
+        JSON.stringify(labels)
+    );
+
+    formData.append(
+        'imageName',
+        imageName || imageFile.name
+    );
+
+    formData.append(
+        'projectId',
+        projectId
+    );
+
+    const response = await fetch(
+        `${API_BASE}/api/assets/save`,
+        {
+            method: 'POST',
+            body: formData,
+        }
+    );
 
     if (!response.ok) {
-        throw new Error(`Failed to save asset: ${response.statusText}`);
+
+        throw new Error(
+            `Failed to save asset: ${response.statusText}`
+        );
     }
 
     return response.json();
 }
 
-export async function listAssets() {
-    const response = await fetch('/api/assets/list');
+
+/**
+ * List Assets
+ */
+export async function listAssets(projectId) {
+
+    const response = await fetch(
+        `${API_BASE}/api/assets/list?projectId=${projectId}`
+    );
+
     if (!response.ok) {
-        throw new Error(`Failed to list assets: ${response.statusText}`);
+
+        throw new Error(
+            `Failed to list assets: ${response.statusText}`
+        );
     }
+
     return response.json();
 }
 
-export async function getAssetDetails(assetId) {
-    const response = await fetch(`/api/assets/${assetId}`);
+
+/**
+ * Get Asset Details
+ */
+export async function getAssetDetails(
+    assetId,
+    projectId
+) {
+
+    const response = await fetch(
+        `${API_BASE}/api/assets/${assetId}?projectId=${projectId}`
+    );
+
     if (!response.ok) {
-        throw new Error(`Failed to get asset details: ${response.statusText}`);
+
+        throw new Error(
+            `Failed to get asset details: ${response.statusText}`
+        );
     }
+
     return response.json();
 }
 
-export async function deleteAsset(assetId) {
-    const response = await fetch(`/api/assets/${assetId}`, {
-        method: 'DELETE',
-    });
+
+/**
+ * Delete Asset
+ */
+export async function deleteAsset(
+    assetId,
+    projectId
+) {
+
+    const response = await fetch(
+        `${API_BASE}/api/assets/${assetId}?projectId=${projectId}`,
+        {
+            method: 'DELETE',
+        }
+    );
+
     if (!response.ok) {
-        throw new Error(`Failed to delete asset: ${response.statusText}`);
+
+        throw new Error(
+            `Failed to delete asset: ${response.statusText}`
+        );
     }
+
     return response.json();
 }
 
-export async function getAssetsStats() {
-    const response = await fetch('/api/assets/stats');
+
+/**
+ * Project Stats
+ */
+export async function getAssetsStats(projectId) {
+
+    const response = await fetch(
+        `${API_BASE}/api/assets/stats?projectId=${projectId}`
+    );
+
     if (!response.ok) {
-        throw new Error(`Failed to get stats: ${response.statusText}`);
+
+        throw new Error(
+            `Failed to get stats: ${response.statusText}`
+        );
     }
+
     return response.json();
 }
 
-export function getAssetImageUrl(filename) {
-    return `/api/assets/image/${filename}`;
+
+/**
+ * Asset Image URL
+ */
+export function getAssetImageUrl(
+    filename,
+    projectId
+) {
+
+    return (
+        `${API_BASE}/api/assets/image/${filename}?projectId=${projectId}`
+    );
 }

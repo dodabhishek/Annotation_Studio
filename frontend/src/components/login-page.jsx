@@ -1,429 +1,370 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ShieldCheck, Zap, Database, MousePointer2, Layers, Box } from 'lucide-react';
+import {
+  Sparkles, ShieldCheck, Zap, Database,
+  MousePointer2, Layers, Box, Tag, Download, Eye
+} from 'lucide-react';
 import { authAPI, setAuthSession } from '@/lib/auth';
 
-// Sample images for the floating 3D ring
-const SAMPLE_SEGMENTS = [
-  { id: 1, color: '#22d3ee', delay: 0 },
-  { id: 2, color: '#a78bfa', delay: 0.5 },
-  { id: 3, color: '#34d399', delay: 1 },
-  { id: 4, color: '#f472b6', delay: 1.5 },
-  { id: 5, color: '#fbbf24', delay: 2 },
-  { id: 6, color: '#60a5fa', delay: 2.5 },
-  { id: 7, color: '#f87171', delay: 3 },
-  { id: 8, color: '#4ade80', delay: 3.5 },
+const CARDS = [
+  { src: '/cards/seg_person.png',  label: 'Person Detection',      badge: 'SAM 2',      color: '#60a5fa' },
+  { src: '/cards/seg_car.png',     label: 'Vehicle Segmentation',  badge: 'DINO',       color: '#818cf8' },
+  { src: '/cards/seg_dog.png',     label: 'SAM2 Point Click',      badge: 'SAM 2',      color: '#38bdf8' },
+  { src: '/cards/seg_medical.png', label: 'Medical Imaging',       badge: 'Multi-class',color: '#a78bfa' },
+  { src: '/cards/seg_street.png',  label: 'Autonomous Driving',    badge: 'YOLO Export',color: '#3b82f6' },
+  { src: '/cards/seg_drone.png',   label: 'Aerial Segmentation',   badge: 'COCO Export',color: '#2563eb' },
 ];
 
-// Floating 3D Segment Component
-function FloatingSegment({ segment, index, total }) {
-  const angle = (index / total) * Math.PI * 2;
-  const radius = 280;
-  const x = Math.cos(angle) * radius;
-  const z = Math.sin(angle) * radius;
-  const rotateY = (angle * 180) / Math.PI;
-
+// ── Single image card ───────────────────────────────────────────────────────
+function AnnotationCard({ card }) {
   return (
-    <motion.div
-      className="absolute"
+    <div
+      className="relative w-52 h-44 rounded-2xl overflow-hidden flex-shrink-0 group"
       style={{
-        transformStyle: 'preserve-3d',
-        transform: `translateX(${x}px) translateZ(${z}px) rotateY(${-rotateY}deg)`,
-      }}
-      initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ 
-        opacity: 1, 
-        scale: 1,
-        y: [0, -10, 0, -5, 0],
-      }}
-      transition={{
-        opacity: { duration: 0.8, delay: segment.delay },
-        scale: { duration: 0.8, delay: segment.delay },
-        y: { duration: 4 + index * 0.5, repeat: Infinity, ease: "easeInOut" },
+        border: `1.5px solid ${card.color}40`,
+        boxShadow: `0 4px 24px ${card.color}20`,
       }}
     >
+      <img
+        src={card.src}
+        alt={card.label}
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+      />
+      {/* dark gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+      {/* badge */}
+      <span
+        className="absolute top-2 right-2 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+        style={{
+          background: `${card.color}25`,
+          border: `1px solid ${card.color}60`,
+          color: card.color,
+        }}
+      >
+        {card.badge}
+      </span>
+
+      {/* label */}
+      <p className="absolute bottom-2 left-3 text-xs font-semibold text-white drop-shadow">
+        {card.label}
+      </p>
+
+      {/* animated border glow on hover */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"
+        style={{ boxShadow: `inset 0 0 0 1.5px ${card.color}` }}
+      />
+    </div>
+  );
+}
+
+// ── Infinite vertical scrolling column ─────────────────────────────────────
+function ScrollColumn({ cards, direction = 'up', speed = 30 }) {
+  // Duplicate to create seamless loop
+  const items = [...cards, ...cards, ...cards];
+  const totalH = cards.length * (176 + 16); // card height + gap
+
+  return (
+    <div className="overflow-hidden h-full relative">
       <motion.div
-        className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden relative cursor-pointer"
-        style={{
-          background: `linear-gradient(135deg, ${segment.color}20 0%, ${segment.color}40 100%)`,
-          border: `2px solid ${segment.color}60`,
-          boxShadow: `0 8px 32px ${segment.color}30, 0 0 0 1px rgba(255,255,255,0.1) inset`,
+        className="flex flex-col gap-4"
+        animate={{ y: direction === 'up' ? [-totalH, 0] : [0, -totalH] }}
+        transition={{
+          duration: speed,
+          repeat: Infinity,
+          ease: 'linear',
+          repeatType: 'loop',
         }}
-        whileHover={{ 
-          scale: 1.2, 
-          z: 50,
-          boxShadow: `0 16px 48px ${segment.color}50, 0 0 0 2px ${segment.color}`,
-        }}
-        transition={{ type: "spring", stiffness: 300 }}
       >
-        <div 
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: `linear-gradient(135deg, ${segment.color}30 0%, transparent 70%)` }}
-        >
-          <Box className="w-8 h-8 md:w-10 md:h-10" style={{ color: segment.color }} />
-        </div>
-        <div 
-          className="absolute inset-0 animate-shimmer"
-          style={{ background: `linear-gradient(90deg, transparent, ${segment.color}20, transparent)`, backgroundSize: '200% 100%' }}
-        />
+        {items.map((card, i) => (
+          <AnnotationCard key={`${card.label}-${i}`} card={card} />
+        ))}
       </motion.div>
-    </motion.div>
-  );
-}
 
-// Particle Background
-function ParticleBackground() {
-  const particles = Array.from({ length: 30 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 4 + 2,
-    duration: Math.random() * 4 + 4,
-    delay: Math.random() * 2,
-  }));
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particles.map((particle) => (
-        <motion.div
-          key={particle.id}
-          className="absolute rounded-full"
-          style={{
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            width: particle.size,
-            height: particle.size,
-            background: 'radial-gradient(circle, rgba(34, 211, 238, 0.6) 0%, transparent 70%)',
-          }}
-          animate={{
-            y: [-20, 20, -20],
-            x: [-10, 10, -10],
-            opacity: [0.3, 0.8, 0.3],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: particle.duration,
-            repeat: Infinity,
-            delay: particle.delay,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
+      {/* Top & bottom fades */}
+      <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
+      <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
     </div>
   );
 }
 
-// 3D Ring Component
-function Ring3D() {
-  const [rotation, setRotation] = useState(0);
+// ── Features ───────────────────────────────────────────────────────────────
+const FEATURES = [
+  { icon: Zap,           text: 'Zero-shot auto-labeling with SAM 2',       color: '#60a5fa' },
+  { icon: MousePointer2, text: 'One-click point segmentation',              color: '#818cf8' },
+  { icon: Download,      text: 'Export YOLO · COCO · Pascal VOC',           color: '#38bdf8' },
+  { icon: Database,      text: 'MongoDB cloud dataset storage',             color: '#a78bfa' },
+  { icon: Tag,           text: 'Text-prompt detection (GroundingDINO)',     color: '#3b82f6' },
+  { icon: ShieldCheck,   text: 'Secure Google OAuth login',                 color: '#2563eb' },
+];
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRotation((prev) => prev + 0.3);
-    }, 50);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="relative w-[600px] h-[600px] md:w-[700px] md:h-[700px]">
-      <div 
-        className="absolute inset-0 flex items-center justify-center"
-        style={{
-          perspective: '1500px',
-          perspectiveOrigin: '50% 50%',
-        }}
-      >
-        <motion.div
-          className="relative"
-          style={{
-            transformStyle: 'preserve-3d',
-            transform: `rotateY(${rotation}deg) rotateX(10deg)`,
-          }}
-        >
-          {SAMPLE_SEGMENTS.map((segment, index) => (
-            <FloatingSegment
-              key={segment.id}
-              segment={segment}
-              index={index}
-              total={SAMPLE_SEGMENTS.length}
-            />
-          ))}
-        </motion.div>
-        
-        {/* Center content */}
-        <motion.div
-          className="absolute flex flex-col items-center text-center z-10"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-        >
-          <motion.p 
-            className="text-lg md:text-xl text-foreground/80 font-medium max-w-xs"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-          >
-            The future is built on
-          </motion.p>
-          <motion.p 
-            className="text-lg md:text-xl gradient-text font-semibold"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1 }}
-          >
-            Artificial Intelligence.
-          </motion.p>
-          <motion.p
-            className="mt-4 text-xs uppercase tracking-[0.3em] text-muted-foreground"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
-          >
-            Scroll to explore
-          </motion.p>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
+// ── Main login page ─────────────────────────────────────────────────────────
 export function LoginPage({ onLoginSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showLogin, setShowLogin] = useState(false);
 
+  // Split cards into 3 columns: [0,1], [2,3], [4,5]
+  const col1 = CARDS.slice(0, 2);
+  const col2 = CARDS.slice(2, 4);
+  const col3 = CARDS.slice(4, 6);
+
   const handleSuccess = async (credentialResponse) => {
     try {
       setIsLoading(true);
       setError('');
-      
       const result = await authAPI.verifyGoogleToken(credentialResponse.credential);
-      
       if (result.success) {
         setAuthSession({ user: result.user, token: result.token });
         onLoginSuccess(result.user);
       }
     } catch (err) {
-      console.error('Login error:', err);
       const detailedError = err.response?.data?.details;
       setError(detailedError ? `Authentication failed: ${detailedError}` : 'Authentication failed. Please try again.');
       setIsLoading(false);
     }
   };
 
-  const handleError = () => {
-    setError('Google login was unsuccessful.');
-  };
-
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden bg-background">
-      <ParticleBackground />
-      
-      {/* Gradient orbs */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-sam-cyan/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-sam-purple/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="min-h-screen w-full flex overflow-hidden relative bg-background">
 
-      <AnimatePresence mode="wait">
-        {!showLogin ? (
-          <motion.div
-            key="hero"
-            className="flex flex-col items-center justify-center z-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* 3D Ring */}
-            <Ring3D />
-            
-            {/* CTA Button */}
-            <motion.button
-              className="gradient-btn px-10 py-4 rounded-full text-lg font-semibold flex items-center gap-3 mt-8"
-              onClick={() => setShowLogin(true)}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.5 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <MousePointer2 className="w-5 h-5" />
-              Get Started
-            </motion.button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="login"
-            className="flex flex-col md:flex-row items-center justify-center gap-16 z-10 px-6 max-w-6xl w-full"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Left Side: Value Proposition */}
-            <motion.div 
-              className="hidden md:flex flex-col gap-8 max-w-md"
-              initial={{ opacity: 0, x: -30 }}
+      {/* ── LEFT: scrolling image columns ─────────────────────────────── */}
+      <div className="hidden lg:flex flex-1 relative overflow-hidden">
+        {/* ambient glow */}
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-sam-cyan/8 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-1/3 left-1/4 w-[300px] h-[300px] bg-sam-purple/8 rounded-full blur-[100px] pointer-events-none" />
+
+        {/* 3 columns */}
+        <div className="flex gap-4 px-8 pt-0 h-full w-full">
+          <div className="flex-1 h-full py-8">
+            <ScrollColumn cards={col1} direction="up" speed={25} />
+          </div>
+          <div className="flex-1 h-full py-8">
+            <ScrollColumn cards={col2} direction="down" speed={32} />
+          </div>
+          <div className="flex-1 h-full py-8">
+            <ScrollColumn cards={col3} direction="up" speed={20} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT: hero / login panel ─────────────────────────────────── */}
+      <div className="w-full lg:w-[520px] xl:w-[580px] flex-shrink-0 flex flex-col justify-center px-10 xl:px-16 py-12 relative z-20 bg-background/95 backdrop-blur-sm border-l border-border/50">
+
+        {/* gradient orbs */}
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-sam-cyan/10  rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-sam-purple/10 rounded-full blur-[60px] pointer-events-none" />
+
+        <AnimatePresence mode="wait">
+          {!showLogin ? (
+            /* ── Hero screen ──────────────────────────────────────────── */
+            <motion.div
+              key="hero"
+              initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.4 }}
+              className="flex flex-col gap-8 relative z-10 mb-50"
             >
-              <div className="flex items-center gap-3">
-                <motion.div 
-                  className="brand-logo"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                >
-                  <Sparkles className="h-6 w-6 text-primary-foreground" />
-                </motion.div>
-                <span className="font-bold text-foreground text-2xl tracking-tight">
-                  Annotation<span className="gradient-text"> Studio</span>
+              {/* Logo */}
+              <motion.div
+                className="flex items-center gap-3"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="brand-logo">
+                  <Sparkles className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <span className="font-bold text-foreground text-xl tracking-tight">
+                  Annotation<span className="gradient-text">Studio</span>
                 </span>
-              </div>
-              
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
-                Build Better Datasets, <br />
-                <span className="gradient-text">Deploy Faster AI.</span>
-              </h1>
-              
-              <p className="text-lg text-muted-foreground">
-                Join thousands of machine learning engineers who use Annotation Studio to streamline their computer vision workflows.
-              </p>
+              </motion.div>
 
-              <div className="space-y-4 mt-4">
-                {[
-                  { icon: Zap, text: 'Zero-shot auto-labeling with SAM 2', color: '#22d3ee' },
-                  { icon: Database, text: 'Seamless dataset export to COCO & YOLO', color: '#a78bfa' },
-                  { icon: ShieldCheck, text: 'Secure MongoDB cloud storage', color: '#34d399' },
-                ].map((feature, i) => (
-                  <motion.div 
+              {/* Headline */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <h1 className="text-4xl xl:text-5xl font-extrabold text-foreground leading-tight mb-4">
+                  Annotate Smarter.<br />
+                  <span className="gradient-text">Ship Faster.</span>
+                </h1>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  AI-powered annotation studio with SAM 2 segmentation, GroundingDINO detection, and one-click dataset export — built for modern ML teams.
+                </p>
+              </motion.div>
+
+              {/* Feature list */}
+              <motion.div
+                className="grid grid-cols-1 gap-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 }}
+              >
+                {FEATURES.map((f, i) => (
+                  <motion.div
                     key={i}
-                    className="flex items-center gap-4"
-                    initial={{ opacity: 0, x: -20 }}
+                    className="flex items-center gap-3 group"
+                    initial={{ opacity: 0, x: -16 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 + i * 0.1 }}
+                    transition={{ delay: 0.4 + i * 0.06 }}
                   >
-                    <motion.div 
-                      className="w-12 h-12 rounded-xl flex items-center justify-center"
-                      style={{ 
-                        background: `${feature.color}15`,
-                        border: `1px solid ${feature.color}30`,
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+                      style={{
+                        background: `${f.color}15`,
+                        border: `1px solid ${f.color}35`,
                       }}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
                     >
-                      <feature.icon className="h-5 w-5" style={{ color: feature.color }} />
-                    </motion.div>
-                    <span className="text-foreground/80">{feature.text}</span>
+                      <f.icon className="h-3.5 w-3.5" style={{ color: f.color }} />
+                    </div>
+                    <span className="text-sm text-foreground/75">{f.text}</span>
                   </motion.div>
                 ))}
-              </div>
-              
+              </motion.div>
+
+              {/* CTA */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="flex flex-col gap-3 pt-2"
+              >
+                <motion.button
+                  className="gradient-btn px-8 py-4 rounded-2xl text-base font-bold flex items-center justify-center gap-3 w-full"
+                  onClick={() => setShowLogin(true)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <MousePointer2 className="w-5 h-5" />
+                  Get Started — It's Free
+                </motion.button>
+                <p className="text-xs text-muted-foreground text-center">
+                  No credit card required · Google sign-in · Instant access
+                </p>
+              </motion.div>
+
+              {/* Stats strip */}
+              <motion.div
+                className="flex items-center gap-6 pt-2 border-t border-border/40"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+              >
+                {[
+                  { val: 'SAM 2', sub: 'AI Backbone' },
+                  { val: '5 Formats', sub: 'Export' },
+                  { val: '∞', sub: 'Images' },
+                ].map((s) => (
+                  <div key={s.sub}>
+                    <p className="text-lg font-bold gradient-text">{s.val}</p>
+                    <p className="text-xs text-muted-foreground">{s.sub}</p>
+                  </div>
+                ))}
+              </motion.div>
+            </motion.div>
+          ) : (
+            /* ── Login card ───────────────────────────────────────────── */
+            <motion.div
+              key="login"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.4 }}
+              className="flex flex-col gap-6 relative z-10"
+            >
+              {/* back */}
               <motion.button
-                className="text-muted-foreground text-sm flex items-center gap-2 hover:text-foreground transition-colors mt-4"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
                 onClick={() => setShowLogin(false)}
                 whileHover={{ x: -4 }}
               >
-                ← Back to home
+                ← Back
               </motion.button>
-            </motion.div>
 
-            {/* Right Side: Login Card */}
-            <motion.div 
-              className="w-full max-w-md"
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="glass-panel rounded-3xl p-8 md:p-10 relative overflow-hidden">
-                {/* Glow effect */}
-                <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[200%] h-40 bg-gradient-to-b from-sam-cyan/20 to-transparent blur-[60px] pointer-events-none" />
-                
-                <div className="relative z-10 flex flex-col items-center">
+              {/* logo */}
+              <div className="flex items-center gap-3">
+                <div className="brand-logo">
+                  <Layers className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <span className="font-bold text-foreground text-xl tracking-tight">
+                  Annotation<span className="gradient-text">Studio</span>
+                </span>
+              </div>
+
+              <div>
+                <h2 className="text-3xl font-extrabold text-foreground mb-2">Welcome back</h2>
+                <p className="text-sm text-muted-foreground">
+                  Sign in to continue your annotation workspace.
+                </p>
+              </div>
+
+              {/* error */}
+              <AnimatePresence>
+                {error && (
                   <motion.div
-                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sam-cyan to-sam-teal flex items-center justify-center mb-6"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.5 }}
+                    className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
                   >
-                    <Layers className="w-8 h-8 text-primary-foreground" />
+                    {error}
                   </motion.div>
-                  
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Welcome Back</h2>
-                  <p className="text-sm text-muted-foreground text-center mb-8">
-                    Sign in to your account to continue your annotation workspace.
-                  </p>
+                )}
+              </AnimatePresence>
 
-                  <AnimatePresence>
-                    {error && (
-                      <motion.div 
-                        className="w-full mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                      >
-                        {error}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <div className="w-full flex justify-center mt-2">
-                    {isLoading ? (
-                      <motion.div 
-                        className="py-4"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                      >
-                        <div className="w-8 h-8 border-2 border-sam-cyan border-t-transparent rounded-full animate-spin" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6 }}
-                      >
-                        <GoogleLogin
-                          onSuccess={handleSuccess}
-                          onError={handleError}
-                          theme="filled_black"
-                          size="large"
-                          shape="pill"
-                          text="continue_with"
-                          width="100%"
-                        />
-                      </motion.div>
-                    )}
-                  </div>
-                  
-                  <div className="w-full mt-8 flex items-center gap-4">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Or</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-                  
-                  <motion.button
-                    disabled
-                    className="w-full mt-6 flex items-center justify-center gap-3 bg-secondary/50 text-muted-foreground font-semibold py-4 px-4 border border-border rounded-xl transition-all opacity-50 cursor-not-allowed"
-                    whileHover={{ scale: 1.01 }}
-                  >
-                    Continue with Email (Coming Soon)
-                  </motion.button>
-
-                  <p className="mt-8 text-xs text-muted-foreground text-center leading-relaxed">
-                    By continuing, you agree to Annotation Studio&apos;s <br/>
-                    <a href="#" className="underline hover:text-foreground transition-colors">Terms of Service</a> and <a href="#" className="underline hover:text-foreground transition-colors">Privacy Policy</a>.
-                  </p>
+              {/* Google login */}
+              <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-24 bg-sam-cyan/20 blur-[40px] pointer-events-none" />
+                <div className="relative z-10 flex flex-col items-center gap-4">
+                  <p className="text-sm font-medium text-foreground/70">Continue with your Google account</p>
+                  {isLoading ? (
+                    <div className="py-3">
+                      <div className="w-8 h-8 border-2 border-sam-cyan border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <GoogleLogin
+                      onSuccess={handleSuccess}
+                      onError={() => setError('Google login was unsuccessful.')}
+                      theme="filled_black"
+                      size="large"
+                      shape="pill"
+                      text="continue_with"
+                      width="100%"
+                    />
+                  )}
                 </div>
               </div>
-              
-              {/* Mobile back button */}
-              <motion.button
-                className="md:hidden text-muted-foreground text-sm flex items-center gap-2 hover:text-foreground transition-colors mt-6 mx-auto"
-                onClick={() => setShowLogin(false)}
-                whileHover={{ x: -4 }}
+
+              {/* divider */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground uppercase tracking-widest">Or</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              <button
+                disabled
+                className="w-full flex items-center justify-center gap-3 bg-secondary/40 text-muted-foreground/50 font-semibold py-3.5 px-4 border border-border/40 rounded-xl cursor-not-allowed text-sm"
               >
-                ← Back to home
-              </motion.button>
+                Continue with Email — Coming Soon
+              </button>
+
+              <p className="text-xs text-muted-foreground text-center leading-relaxed">
+                By continuing, you agree to Annotation Studio's{' '}
+                <a href="#" className="underline hover:text-foreground">Terms of Service</a>{' '}
+                and{' '}
+                <a href="#" className="underline hover:text-foreground">Privacy Policy</a>.
+              </p>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

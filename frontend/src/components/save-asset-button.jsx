@@ -4,7 +4,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import './save-asset-button.css';
 
-export function SaveAssetButton({ image, annotations, labels, onSaved, iconOnly = false }) {
+export function SaveAssetButton({ image, annotations, labels, onSaved, iconOnly = false, projectId }) {
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [error, setError] = useState(null);
@@ -31,6 +31,7 @@ export function SaveAssetButton({ image, annotations, labels, onSaved, iconOnly 
             formData.append('annotations', JSON.stringify(annotations));
             formData.append('labels', JSON.stringify(labels));
             formData.append('imageName', image.name);
+            formData.append('projectId', projectId)
 
             const response = await fetch('/api/assets/save', {
                 method: 'POST',

@@ -4,11 +4,19 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 import jwt
 import datetime
+from pathlib import Path
 
 auth_bp = Blueprint("auth_bp", __name__)
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 JWT_SECRET = os.getenv("JWT_SECRET", "super-secret-jwt-key")
+
+BASE_STORAGE = (
+    Path(__file__).resolve().parent.parent
+    / "storage"
+    / "users"
+)
+BASE_STORAGE.mkdir(parents=True, exist_ok=True)
 
 @auth_bp.route("/google", methods=["POST"])
 def google_auth():
@@ -27,7 +35,20 @@ def google_auth():
         email = idinfo["email"]
         name = idinfo.get("name", "")
         picture = idinfo.get("picture", "")
+        
+        user_folder = BASE_STORAGE / user_id
 
+        (user_folder / "projects").mkdir(
+            parents=True,
+            exist_ok=True
+        )
+        (user_folder / "folders").mkdir(
+        exist_ok=True
+    )
+        
+        (user_folder / "temp").mkdir(
+            exist_ok=True
+        )
         # Store/Update in MongoDB if available
         if current_app.db is not None:
             users_collection = current_app.db.users
@@ -38,6 +59,7 @@ def google_auth():
                     "email": email,
                     "name": name,
                     "picture": picture,
+                    "workspacePath": str(user_folder),
                     "lastLogin": datetime.datetime.utcnow()
                 }},
                 upsert=True

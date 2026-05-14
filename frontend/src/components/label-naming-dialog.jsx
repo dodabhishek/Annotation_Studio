@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
@@ -47,6 +47,9 @@ export function LabelNamingDialog({
         <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
             <DialogContent className="max-w-md">
                 <DialogTitle>Assign Label to Annotation</DialogTitle>
+                <DialogDescription className="sr-only">
+                    Choose a new label name and color, or select an existing label for this annotation.
+                </DialogDescription>
                 
                 <div className="space-y-4">
                     {/* Use Existing Label */}

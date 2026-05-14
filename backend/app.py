@@ -4,11 +4,14 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+
 load_dotenv()
 
 from routes.detect_route import detect_bp
 from routes.assets_route import assets_bp
 from routes.auth_route import auth_bp
+from routes.project_route import project_bp
+
 
 app = Flask(__name__)
 
@@ -36,7 +39,7 @@ else:
 app.register_blueprint(detect_bp)
 app.register_blueprint(assets_bp)
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
-
+app.register_blueprint(project_bp)
 
 @app.route("/")
 def home():

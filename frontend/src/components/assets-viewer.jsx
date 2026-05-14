@@ -71,7 +71,7 @@ const EXPORT_FORMATS = [
     }
 ];
 
-export function AssetsViewer() {
+export function AssetsViewer({projectId}) {
     const assetsManager = useAssetsManager();
     const [selectedAsset, setSelectedAsset] = useState(null);
     const [showDetails, setShowDetails] = useState(false);
@@ -82,13 +82,18 @@ export function AssetsViewer() {
     const [selectedFormat, setSelectedFormat] = useState('yolov11');
 
     useEffect(() => {
-        assetsManager.loadAssets();
-    }, []);
+
+        if (!projectId) return;
+
+        assetsManager.loadAssets(projectId);
+
+    }, [projectId]);
 
     const handleViewAsset = async (asset) => {
         setSelectedAsset(asset);
         setLoadingDetails(true);
-        const details = await assetsManager.getAssetDetails(asset.id);
+
+        const details = await assetsManager.getAssetDetails(asset.id, projectId);
         setAssetDetails(details);
         setLoadingDetails(false);
         setShowDetails(true);
@@ -97,12 +102,12 @@ export function AssetsViewer() {
     const handleDeleteAsset = async (assetId, e) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this asset?')) {
-            await assetsManager.deleteAsset(assetId);
+            await assetsManager.deleteAsset(assetId, projectId);
         }
     };
 
     const assets = assetsManager.assets;
-
+    
     return (
         <div className="assets-viewer-container">
             {/* Header */}
@@ -174,8 +179,9 @@ export function AssetsViewer() {
                                 key={asset.id}
                                 asset={asset}
                                 showAnnotations={assetsManager.showAnnotations}
-                                onView={() => handleViewAsset(asset)}
+                               onView={() => handleViewAsset(asset)}
                                 onDelete={(e) => handleDeleteAsset(asset.id, e)}
+                                projectId={projectId}
                             />
                         ))}
                     </div>
@@ -198,7 +204,7 @@ export function AssetsViewer() {
                                     <h3 className="text-sm font-semibold mb-3 text-foreground">Image</h3>
                                     <div className="relative h-full flex items-center justify-center bg-black/5 rounded-lg border border-border">
                                         <img
-                                            src={`/api/assets/image/${assetDetails.image}`}
+                                            src={`/api/assets/image/${assetDetails.image}?projectId=${projectId}`}
                                             alt={assetDetails.originalName}
                                             className="w-full h-full object-contain max-h-[85vh]"
                                             onLoad={(e) => setImageDimensions({ width: e.target.naturalWidth, height: e.target.naturalHeight })}
@@ -212,7 +218,8 @@ export function AssetsViewer() {
                                                 {assetDetails.annotations.map((ann, idx) => {
                                                     const label = assetDetails.labels?.find(l => l.id === ann.labelId);
                                                     const color = label?.color || '#3b82f6';
-                                                    const strokeWidth = Math.max(2, imageDimensions.width / 500);
+                                                    const strokeWidth = Math.max(2,
+                                                         imageDimensions.width / 500);
                                                     
                                                     if (ann.type === 'bbox' && ann.points.length === 2) {
                                                         const [p1, p2] = ann.points;
@@ -401,7 +408,8 @@ export function AssetsViewer() {
                                 Cancel
                             </Button>
                             <Button onClick={() => {
-                                window.location.href = `/api/assets/export/zip?format=${encodeURIComponent(selectedFormat.replace(/-/g, ' '))}`;
+                               window.location.href =
+   `/api/assets/export/zip?projectId=${projectId}&format=${encodeURIComponent(selectedFormat.replace(/-/g, ' '))}`;
                                 setShowExportModal(false);
                             }}>
                                 Continue
@@ -414,14 +422,14 @@ export function AssetsViewer() {
     );
 }
 
-function AssetCard({ asset, showAnnotations, onView, onDelete }) {
+function AssetCard({ asset, showAnnotations, onView, onDelete, projectId }) {
     const [dim, setDim] = useState(null);
 
     return (
         <div className="asset-card" onClick={onView}>
             <div className="asset-image-wrapper relative">
                 <img
-                    src={`/api/assets/image/${asset.image}`}
+                   src={`/api/assets/image/${asset.image}?projectId=${projectId}`}
                     alt={asset.originalName}
                     className="asset-image"
                     onLoad={(e) => setDim({ w: e.target.naturalWidth, h: e.target.naturalHeight })}

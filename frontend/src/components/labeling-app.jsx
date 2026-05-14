@@ -10,14 +10,14 @@ import { LabelNamingDialog } from '@/components/label-naming-dialog';
 import { SaveAssetButton } from '@/components/save-asset-button';
 import { AssetsViewer } from '@/components/assets-viewer';
 import { useAnnotationStore } from '@/hooks/use-annotation-store';
-import { Download, Sparkles, AlertCircle, ArrowLeft, Tags, LayoutDashboard, Database, LogOut, Layers, Zap, ImageIcon } from 'lucide-react';
+import { Download, Sparkles, AlertCircle, ArrowLeft, ArrowRight, Tags, LayoutDashboard, Database, LogOut, Layers, Zap, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { detectObjects } from '@/lib/api';
 import { generateCOCODataset, downloadCOCODataset, getImageDimensions } from '@/lib/coco-export';
 
-export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogout }) {
+export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogout, onContinueToDataset,  projectId }) {
     const store = useAnnotationStore();
     const initializedRef = useRef(false);
 
@@ -184,6 +184,18 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
         URL.revokeObjectURL(url);
     }, [store]);
 
+    const handleContinueToDataset = useCallback(() => {
+        if (!onContinueToDataset || store.images.length === 0) return;
+        onContinueToDataset(
+            store.images.map((img) => ({
+                id: img.id,
+                name: img.name,
+                file: img.file,
+                preview: img.url,
+            }))
+        );
+    }, [onContinueToDataset, store.images]);
+
     return (
       <div className="h-screen flex flex-col bg-background overflow-hidden">
         {/* Background gradients */}
@@ -230,7 +242,25 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
               </motion.span>
             )}
           </div>
-          <div className="flex-1"/>
+          <div className="flex-1" />
+          {onContinueToDataset && (
+            <motion.div
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <Button
+                type="button"
+                size="sm"
+                className="gap-2 h-9 px-4 gradient-btn shadow-md"
+                onClick={handleContinueToDataset}
+                disabled={store.images.length === 0}
+              >
+                Continue
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </motion.div>
+          )}
           <div className="flex items-center gap-3">
             {/* Progress badge */}
             <motion.div 
@@ -310,6 +340,7 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
                     annotations={store.currentImage?.annotations || []} 
                     labels={store.labels}
                     iconOnly={true}
+                    projectId = {projectId}
                 />
               }
           />
@@ -335,7 +366,7 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
 
           {/* Canvas */}
           <motion.div
-            className="flex-1"
+            className="flex-1 flex flex-col h-full"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
@@ -477,6 +508,9 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
             <Dialog open={showOutputDialog} onOpenChange={setShowOutputDialog}>
               <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-card border-border">
                 <DialogTitle className="sr-only">Detection Output</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Full-size image showing model detection output.
+                </DialogDescription>
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-sam-cyan" />
@@ -553,17 +587,26 @@ export function LabelingApp({ initialFiles, selectedModel, onBack, user, onLogou
           transition={{ delay: 0.25 }}
         >
           <span className="flex items-center gap-1.5 flex-wrap">
-            Press{' '}
+            Tools:{' '}
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">V</kbd> Select{' '}
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">S</kbd> SAM{' '}
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">B</kbd> Box{' '}
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">P</kbd> Polygon{' '}
-            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">V</kbd> Select
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">L</kbd> Line{' '}
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">K</kbd> Point{' '}
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">H</kbd> Pan
           </span>
           <div className="flex-1"/>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 flex-wrap justify-end">
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">←</kbd>
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">A</kbd>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">→</kbd>
-            Navigate images
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">D</kbd>
+            Images ·{' '}
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">+</kbd>
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">-</kbd>
+            <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sam-cyan/10 border border-sam-cyan/30 text-sam-cyan">0</kbd>
+            Zoom
           </span>
         </motion.footer>
 

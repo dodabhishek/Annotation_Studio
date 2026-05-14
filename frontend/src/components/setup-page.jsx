@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { AssetsViewer } from '@/components/assets-viewer';
 
-const AI_MODELS = [
+export const AI_MODELS = [
   {
     id: 'grounding-dino',
     name: 'Grounding DINO',

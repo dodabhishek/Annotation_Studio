@@ -76,12 +76,16 @@ export function AnnotationCanvas({
     }
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Do NOT set crossOrigin for blob: URLs — they are same-origin and
+    // setting crossOrigin would cause the browser to reject the load.
     img.onload = () => {
       imgRef.current = img;
       imgUrlRef.current = image.url;
       setImageSize({ width: img.width, height: img.height });
       fitImageToCanvas(img);
+    };
+    img.onerror = (e) => {
+      console.error('[AnnotationCanvas] Failed to load image:', image.url, e);
     };
     img.src = image.url;
   }, [image, fitImageToCanvas]);
@@ -157,7 +161,7 @@ export function AnnotationCanvas({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, dw, dh);
 
-    ctx.fillStyle = '#0a0a0f';
+    ctx.fillStyle = '#03061a';
     ctx.fillRect(0, 0, dw, dh);
 
     ctx.save();
@@ -167,7 +171,7 @@ export function AnnotationCanvas({
     ctx.scale(zoom, zoom);
     ctx.translate(-img.width / 2, -img.height / 2);
 
-    ctx.fillStyle = '#1a1a2e';
+    ctx.fillStyle = '#060d2e';
     ctx.fillRect(0, 0, img.width, img.height);
 
     ctx.drawImage(img, 0, 0);
@@ -629,7 +633,7 @@ export function AnnotationCanvas({
   return (
     <div
       ref={containerRef}
-      className="flex-1 relative overflow-hidden bg-[#0a0a0f]"
+      className="h-full w-full relative overflow-hidden bg-[#0a0a0f]"
       style={{ cursor: getCursor() }}
     >
       <canvas
